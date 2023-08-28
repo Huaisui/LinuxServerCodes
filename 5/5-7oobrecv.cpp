@@ -7,61 +7,71 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <libgen.h>
 
 #define BUF_SIZE 1024
 
-int main( int argc, char* argv[] )
-{
-    if( argc <= 2 )
-    {
-        printf( "usage: %s ip_address port_number\n", basename( argv[0] ) );
+/**
+ * ssize_t recv(int sockfd, void *buf, size_t len, int flags);
+ *
+ * 启动 5-7 后启动 5-6 ：
+ *
+ * got 5 bytes of normal data '123ab'
+ *
+ * got 1 bytes of oob data 'c'           只有 c 被当成外带数据
+ *
+ * got 3 bytes of normal data '123'
+ *
+ * 服务器对正常数据的接收将被带外数据截断，即前一部分正常数据“123ab”和后续的正常数据“123”是不能被一个recv调用全部读出的。
+ */
+
+int main(int argc, char *argv[]) {
+    if (argc <= 2) {
+        printf("usage: %s ip_address port_number\n", basename(argv[0]));
         return 1;
     }
-    const char* ip = argv[1];
-    int port = atoi( argv[2] );
+    const char *ip = argv[1];
+    int port = atoi(argv[2]);
 
     struct sockaddr_in address;
-    bzero( &address, sizeof( address ) );
+    bzero(&address, sizeof(address));
     address.sin_family = AF_INET;
-    inet_pton( AF_INET, ip, &address.sin_addr );
-    address.sin_port = htons( port );
+    inet_pton(AF_INET, ip, &address.sin_addr);
+    address.sin_port = htons(port);
 
-    int sock = socket( PF_INET, SOCK_STREAM, 0 );
-    assert( sock >= 0 );
+    int sock = socket(PF_INET, SOCK_STREAM, 0);
+    assert(sock >= 0);
 
-    int ret = bind( sock, ( struct sockaddr* )&address, sizeof( address ) );
-    assert( ret != -1 );
+    int ret = bind(sock, (struct sockaddr *) &address, sizeof(address));
+    assert(ret != -1);
 
-    ret = listen( sock, 5 );
-    assert( ret != -1 );
+    ret = listen(sock, 5);
+    assert(ret != -1);
 
     struct sockaddr_in client;
-    socklen_t client_addrlength = sizeof( client );
-    int connfd = accept( sock, ( struct sockaddr* )&client, &client_addrlength );
-    if ( connfd < 0 )
-    {
-        printf( "errno is: %d\n", errno );
-    }
-    else
-    {
-        char buffer[ BUF_SIZE ];
+    socklen_t client_addrlength = sizeof(client);
+    int connfd = accept(sock, (struct sockaddr *) &client, &client_addrlength);
+    if (connfd < 0) {
+        printf("errno is: %d\n", errno);
+    } else {
+        char buffer[BUF_SIZE];
 
-        memset( buffer, '\0', BUF_SIZE );
-        ret = recv( connfd, buffer, BUF_SIZE-1, 0 );
-        printf( "got %d bytes of normal data '%s'\n", ret, buffer );
+        memset(buffer, '\0', BUF_SIZE);
+        ret = recv(connfd, buffer, BUF_SIZE - 1, 0);
+        printf("got %d bytes of normal data '%s'\n", ret, buffer);
 
-        memset( buffer, '\0', BUF_SIZE );
-        ret = recv( connfd, buffer, BUF_SIZE-1, MSG_OOB );
-        printf( "got %d bytes of oob data '%s'\n", ret, buffer );
+        memset(buffer, '\0', BUF_SIZE);
+        ret = recv(connfd, buffer, BUF_SIZE - 1, MSG_OOB);
+        printf("got %d bytes of oob data '%s'\n", ret, buffer);
 
-        memset( buffer, '\0', BUF_SIZE );
-        ret = recv( connfd, buffer, BUF_SIZE-1, 0 );
-        printf( "got %d bytes of normal data '%s'\n", ret, buffer );
+        memset(buffer, '\0', BUF_SIZE);
+        ret = recv(connfd, buffer, BUF_SIZE - 1, 0);
+        printf("got %d bytes of normal data '%s'\n", ret, buffer);
 
-        close( connfd );
+        close(connfd);
     }
 
-    close( sock );
+    close(sock);
     return 0;
 }
 
