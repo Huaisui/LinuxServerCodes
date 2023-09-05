@@ -13,6 +13,9 @@
 
 /**
  * ssize_t recv(int sockfd, void *buf, size_t len, int flags);
+ * 返回值：> 0 接收到的数据大小;
+ *       == 0 另一端关闭了 socket;
+ *       == -1 错误
  *
  * 启动 5-7 后启动 5-6 ：
  *
